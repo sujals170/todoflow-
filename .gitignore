@@ -51,6 +51,6 @@ Desktop.ini
 .supabase/
 
 # Local Flutter SDK & stitch extraction
-flutter/
-stitch_extracted/
+/flutter/
+/stitch_extracted/
 
