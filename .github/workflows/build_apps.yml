@@ -1,0 +1,83 @@
+name: Build Android APK and iOS Application
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Create .env Configuration
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://uyzxgwowxkcywpdfsmkt.supabase.co' }}" > .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5enhnd293eGtjeXdwZGZzbWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwOTQxODksImV4cCI6MjEwNjY3MDE4OX0.ae3EMAas6SFtmhIfrN56wRv-GXF0oIRgX1HNOZ8IeBA' }}" >> .env
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Test Suite
+        run: flutter test
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TodoFlow-Android-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-ios:
+    name: Build iOS Application
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Create .env Configuration
+        run: |
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://uyzxgwowxkcywpdfsmkt.supabase.co' }}" > .env
+          echo "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5enhnd293eGtjeXdwZGZzbWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwOTQxODksImV4cCI6MjEwNjY3MDE4OX0.ae3EMAas6SFtmhIfrN56wRv-GXF0oIRgX1HNOZ8IeBA' }}" >> .env
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build iOS App (No Codesign for Simulator / Ad-Hoc / Test)
+        run: |
+          flutter build ios --release --no-codesign
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -r TodoFlow-iOS.ipa Payload
+
+      - name: Upload iOS Application Artifact (.ipa)
+        uses: actions/upload-artifact@v4
+        with:
+          name: TodoFlow-iOS-IPA
+          path: build/ios/iphoneos/TodoFlow-iOS.ipa
